@@ -7,7 +7,7 @@ Consequences in Variable Environments and a Shifting Climate"
 **Software:**
 These files includes pair-bond observation events to estimate vital rates and probabilities of divorce and widowhood using JAGS through R package JagsUI. 
 
-**Author(s)** 
+**Author(s)**   
 Ruijiao Sun  
 Woods Hole Oceanographic Institution  
 Massachusetts Institute of Technology  
