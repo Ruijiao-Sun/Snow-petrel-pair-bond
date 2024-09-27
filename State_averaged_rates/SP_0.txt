@@ -1,0 +1,162 @@
+###==================================================
+##Modeling pair-bond transition rates for snow petrel
+###==================================================
+
+# STATE definition
+# 1. SB
+# 2. NW
+# 3. ND
+# 4. NB
+# 5. W
+# 6. D
+
+model {
+### LIKELIHOOD ###
+for(i in 1:n_ind) 
+    { 
+    ###########initiation############
+        STATE[i,FIRST[i]] <- S[i,FIRST[i]]
+        w_ind[i,FIRST[i]] <- 0
+        d_ind[i,FIRST[i]] <- 0
+        #######################
+    # rest of the life histories
+    	for (t in (FIRST[i]+1):LAST[i])
+    	{   
+    		#survival
+            SURVIVAL[i,t] ~ dbern(s[i,t]*SURVIVAL[i,t-1])
+            s[i,t] <- ilogit(mu_s[STATE[i,t-1]])
+
+            #widowhood
+            WIDOWHOOD[i,t] ~ dbern(w[i,t]*SURVIVAL[i,t])
+            w[i,t] <- ilogit(mu_w[STATE[i,t-1]])
+
+            #divorce
+            DIVORCE[i,t] ~ dbern(d[i,t]*(1-WIDOWHOOD[i,t])*SURVIVAL[i,t])
+            d[i,t] <- ilogit(mu_d[STATE[i,t-1]]+alpha*(1-BS[i,t-1]))
+
+            #breeding
+            BREEDING[i,t] ~ dbern(beta[i,t]*SURVIVAL[i,t])
+            beta[i,t] <- ilogit(mu_beta[STATE[i,t-1]])
+
+            w_ind[i,t] <- (w_ind[i,t-1] + WIDOWHOOD[i,t])*(1-BREEDING[i,t])
+            d_ind[i,t] <- (d_ind[i,t-1] + DIVORCE[i,t])*(1-BREEDING[i,t])
+
+            #STATE update
+            STATE[i,t]<-1+(1-BREEDING[i,t])*3 + WIDOWHOOD[i,t] + DIVORCE[i,t]*2 + (1-WIDOWHOOD[i,t])*w_ind[i,t] + (1-DIVORCE[i,t])*d_ind[i,t]*2
+            
+            SUCCESS[i,t] ~ dbern(f[i,t]*BREEDING[i,t])
+            f[i,t] <- ilogit(mu_f[STATE[i,t]])
+
+            #Observation
+            DETECTED[i,t] ~ dbern(prob[i,t]*SURVIVAL[i,t])
+            prob[i,t] <- ilogit(mu_detect[STATE[i,t]])
+    	}
+    }
+
+#######Prior
+prec_gamma <- pow(log(2)/2, -2);
+alpha ~ dnorm(0.0, prec_gamma);
+
+#survival
+mu_s[1] ~ dnorm(0.0, 0.4444444)
+mu_s[2] <- mu_s[1]
+mu_s[3] <- mu_s[1]
+mu_s[4] <- mu_s[1]
+mu_s[5] <- mu_s[1]
+mu_s[6] <- mu_s[1]
+
+#widowhood
+mu_w[1] ~ dnorm(0.0, 0.4444444)
+mu_w[2] <- mu_w[1]#dnorm(0.0, 0.4444444)
+mu_w[3] <- mu_w[1]#dnorm(0.0, 0.4444444)
+mu_w[4] <- mu_w[1]#dnorm(0.0, 0.4444444)
+mu_w[5] <- logit(0)
+mu_w[6] <- logit(0)
+
+#divorce
+mu_d[1] ~ dnorm(0.0, 0.4444444)
+mu_d[2] <- mu_d[1]#dnorm(0.0, 0.4444444)
+mu_d[3] <- mu_d[1]#dnorm(0.0, 0.4444444)
+mu_d[4] <- mu_d[1]#dnorm(0.0, 0.4444444)
+mu_d[5] <- logit(0)
+mu_d[6] <- logit(0)
+
+#breeding
+mu_beta[1] ~ dnorm(0.0, 0.4444444)
+mu_beta[2] <- mu_beta[1] #dnorm(0.0, 0.4444444)
+mu_beta[3] <- mu_beta[1] #dnorm(0.0, 0.4444444)
+mu_beta[4] <- mu_beta[1] #dnorm(0.0, 0.4444444)
+mu_beta[5] <- mu_beta[1] #dnorm(0.0, 0.4444444)
+mu_beta[6] <- mu_beta[1] #dnorm(0.0, 0.4444444)
+
+#success
+mu_f[1] ~ dnorm(0.0, 0.4444444)
+mu_f[2] <- mu_f[1]#dnorm(0.0, 0.4444444)
+mu_f[3] <- mu_f[1]#dnorm(0.0, 0.4444444)
+mu_f[4] <- logit(0)
+mu_f[5] <- logit(0)
+mu_f[6] <- logit(0)
+
+#detected
+mu_detect[1] <- logit(1)#dnorm(0.0, 0.4444444)
+mu_detect[2] <- logit(1)#dnorm(0.0, 0.4444444)
+mu_detect[3] <- logit(1)#dnorm(0.0, 0.4444444)
+mu_detect[4] ~ dnorm(0.0, 0.4444444)
+mu_detect[5] ~ dnorm(0.0, 0.4444444)
+mu_detect[6] ~ dnorm(0.0, 0.4444444)
+
+########### Derived quantities
+#survival
+s_SB <- ilogit(mu_s[1])
+s_NW <- ilogit(mu_s[2])
+s_ND <- ilogit(mu_s[3])
+s_NB <- ilogit(mu_s[4])
+s_W  <- ilogit(mu_s[5])
+s_D  <- ilogit(mu_s[6])
+#widowhood
+w_SB <- ilogit(mu_w[1])
+w_NW <- ilogit(mu_w[2])
+w_ND <- ilogit(mu_w[3])
+w_NB <- ilogit(mu_w[4])
+w_W  <- ilogit(mu_w[5])
+w_D  <- ilogit(mu_w[6])
+#divorce
+d_SB <- ilogit(mu_d[1])
+d_NW <- ilogit(mu_d[2])
+d_ND <- ilogit(mu_d[3])
+d_NB <- ilogit(mu_d[4])
+d_W  <- ilogit(mu_d[5])
+d_D  <- ilogit(mu_d[6])
+#breeding
+beta_SB <- ilogit(mu_beta[1])
+beta_NW <- ilogit(mu_beta[2])
+beta_ND <- ilogit(mu_beta[3])
+beta_NB <- ilogit(mu_beta[4])
+beta_W  <- ilogit(mu_beta[5])
+beta_D  <- ilogit(mu_beta[6])
+
+#success
+f_SB <- ilogit(mu_f[1])
+f_NW <- ilogit(mu_f[2])
+f_ND <- ilogit(mu_f[3])
+f_NB <- ilogit(mu_f[4])
+f_W  <- ilogit(mu_f[5])
+f_D  <- ilogit(mu_f[6])
+
+#detection
+detect_SB <- ilogit(mu_detect[1])
+detect_NW <- ilogit(mu_detect[2])
+detect_ND <- ilogit(mu_detect[3])
+detect_NB <- ilogit(mu_detect[4])
+detect_W  <- ilogit(mu_detect[5])
+detect_D  <- ilogit(mu_detect[6])
+
+#bs affect divorce
+alpha_bs<-alpha
+
+#divorce with failed previous breeding
+d_SBf <- ilogit(mu_d[1]+alpha)
+d_NWf <- ilogit(mu_d[2]+alpha)
+d_NDf <- ilogit(mu_d[3]+alpha)
+d_NBf <- ilogit(mu_d[4]+alpha)
+}
